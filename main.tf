@@ -1,9 +1,9 @@
 provider "digitalocean" {
-  token = "${var.do_token}"
+  token = var.do_token
 }
 
 data "digitalocean_ssh_key" "personal" {
-  name = "${var.do_ssh_key_name}"
+  name = var.do_ssh_key_name
 }
 
 data "digitalocean_sizes" "web" {
@@ -29,14 +29,14 @@ data "digitalocean_sizes" "web" {
 }
 
 resource "digitalocean_droplet" "web" {
-  ssh_keys = ["${data.digitalocean_ssh_key.personal.id}"]
+  ssh_keys = [data.digitalocean_ssh_key.personal.id]
   image    = "ubuntu-18-04-x64"
   name     = "web"
   region   = "sgp1"
 
   # https://developers.digitalocean.com/documentation/v2/#list-all-sizes
   # size = "s-1vcpu-1gb" # $5.0/month
-  size = "${data.digitalocean_sizes.web.sizes.0.slug}"
+  size = data.digitalocean_sizes.web.sizes[0].slug
 
   provisioner "remote-exec" {
     inline = [
@@ -50,9 +50,10 @@ resource "digitalocean_droplet" "web" {
     ]
 
     connection {
+      host        = self.ipv4_address
       type        = "ssh"
       user        = "root"
-      private_key = "${file(var.private_key)}"
+      private_key = file(var.private_key)
       timeout     = "2m"
     }
   }
