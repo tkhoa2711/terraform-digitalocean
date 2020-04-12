@@ -1,0 +1,66 @@
+version: 2
+
+references:
+
+base_image: &base_image hashicorp/terraform:light
+
+working_directory: &working_directory ~/project
+
+default_config: &default_config
+  docker:
+    - image: *base_image
+  working_directory: *working_directory
+  environment:
+    BASH_ENV: /root/.bashrc
+    WORKING_DIRECTORY: /root/project/
+
+repo_cache_key: &repo_cache_key v1-repo-{{ .Branch }}-{{ .Revision }}
+
+restore_repo: &restore_repo
+  restore_cache:
+    key: *repo_cache_key
+
+save_repo: &save_repo
+  save_cache:
+    key: *repo_cache_key
+    paths:
+      - *working_directory
+
+set_terraform_environment: &set_terraform_environment
+  run:
+    name: set terraform environment
+    command: |
+      cd && touch $BASH_ENV
+
+terraform_init: &terraform_init
+  run:
+    name: terraform init
+    command: |
+      source $BASH_ENV
+      cd $WORKING_DIRECTORY
+      terraform init
+
+jobs:
+  lint:
+    <<: *default_config
+    steps:
+      - checkout
+      - *set_terraform_environment
+      - *terraform_init
+      - run:
+          name: terraform validate
+          command: |
+            source $BASH_ENV
+            cd $WORKING_DIRECTORY
+            terraform fmt
+            terraform validate
+      - *save_repo
+
+workflows:
+  version: 2
+  lint_plan:
+    jobs:
+      - lint
+      - plan:
+          requires:
+            - lint
