@@ -56,6 +56,19 @@ jobs:
             terraform validate
       - *save_repo
 
+  plan:
+    <<: *default_config
+    steps:
+      - *restore_repo
+      - *set_terraform_environment
+      - *terraform_init
+      - run:
+          name: terraform plan
+          command: |
+            source $BASH_ENV
+            cd $WORKING_DIRECTORY
+            terraform plan
+
 workflows:
   version: 2
   lint_plan:
